@@ -1,0 +1,81 @@
+package com.jsdc.gsgwxb.model.sys;
+
+import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.activerecord.Model;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Comment;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+import java.io.Serializable;
+import java.util.Date;
+
+@Entity
+@TableName(value = "sys_menu")
+@Table(name = "sys_menu")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@org.hibernate.annotations.Table(
+        comment = "菜单",
+        appliesTo = "sys_menu"
+)
+public class SysMenu extends Model<SysMenu> implements Serializable {
+    @Id
+    @TableId(value = "id", type = IdType.INPUT)
+    @Comment("id")
+    private String id;
+    @Comment("菜单名称")
+    private String menuName;
+    @Comment("路由名称")
+    private String pathName;
+    @Comment("路由链接")
+    private String menuHref;
+    @Comment("vue文件路径")
+    private String menuVueHref;
+    @Comment("权限重定向")
+    private String menuRedirect;
+    @Comment("菜单类型（1、菜单 2、按钮）")
+    private String menuType;
+    @Comment("菜单图标")
+    private String menuIcon;
+    @Comment("权限标识")
+    private String menuCode;
+    @Comment("权限上级 第一级为-1")
+    private String menuSuperior;
+    @Comment("是否显示，0正常 1禁用")
+    private Integer isFlag;
+    @Comment("状态 0正常 1禁用")
+    private Integer status;
+    @Comment("排序")
+    private Integer sort;
+    @Comment("删除标记, 0：否 1：是")
+    private Integer isDel;
+    @Comment("创建者")
+    @TableField(fill = FieldFill.INSERT)
+    private String createUser;
+    @Comment("修改者")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateUser;
+    @Comment("创建时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @TableField(fill = FieldFill.INSERT)
+    private Date createTime;
+    @Comment("修改时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Date updateTime;
+    @Transient
+    @TableField(exist = false)
+    private Integer pageIndex;
+    @Transient
+    @TableField(exist = false)
+    private Integer pageSize;
+}

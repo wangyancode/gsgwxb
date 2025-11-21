@@ -1,0 +1,36 @@
+package com.jsdc.gsgwxb.config.listener;
+
+import com.jsdc.gsgwxb.model.sys.SysUser;
+import com.jsdc.gsgwxb.service.sys.SysUserService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.Message;
+import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.stereotype.Component;
+
+/**
+ * 监听过期事件的监听器实现
+ */
+@Component
+@Slf4j
+public class RedisKeyExpirationListener implements MessageListener {
+    private final SysUserService userService;
+
+    public RedisKeyExpirationListener(SysUserService sysUserService) {
+        this.userService = sysUserService;
+
+    }
+
+    @Override
+    public void onMessage(Message message, byte[] pattern) {
+        String expiredKey = message.toString();
+        log.info("Redis key expired: {}",expiredKey);
+        String prefix = "gps_early_";
+        if (expiredKey.startsWith(prefix)) {
+            // 去掉前缀
+            String id = expiredKey.substring(prefix.length());
+            // 传入id调用方法
+            SysUser user = userService.getById(id);
+            userService.updateById(user);
+        }
+    }
+}

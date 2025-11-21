@@ -1,0 +1,54 @@
+{
+  "groups": [
+    {
+      "name": "spring.myconfig",
+      "type": "com.jsdc.gsgwxb.config.MyConfig",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    }
+  ],
+  "properties": [
+    {
+      "name": "spring.myconfig.color-sql",
+      "type": "java.lang.Boolean",
+      "description": "是否彩色SQL日志",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    },
+    {
+      "name": "spring.myconfig.domain",
+      "type": "java.lang.String",
+      "description": "本项目部署到的服务器域名（文件上传、微信支付等等模块  要用到）",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    },
+    {
+      "name": "spring.myconfig.is-pw",
+      "type": "java.lang.Boolean",
+      "description": "是否明文存储密码",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    },
+    {
+      "name": "spring.myconfig.log-to-db",
+      "type": "java.lang.Boolean",
+      "description": "是否把API请求日志记录在数据库",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    },
+    {
+      "name": "spring.myconfig.log-to-file",
+      "type": "java.lang.Boolean",
+      "description": "是否把API请求日志输出在控制台",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    },
+    {
+      "name": "spring.myconfig.md5-salt",
+      "type": "java.lang.String",
+      "description": "md5的盐",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    },
+    {
+      "name": "spring.myconfig.throw-sql",
+      "type": "java.lang.Boolean",
+      "description": "是否抛出SQL（将sql报错抛出到前端，方便调试，请只在开发环境打开，在生产模式请关闭）",
+      "sourceType": "com.jsdc.gsgwxb.config.MyConfig"
+    }
+  ],
+  "hints": []
+}
