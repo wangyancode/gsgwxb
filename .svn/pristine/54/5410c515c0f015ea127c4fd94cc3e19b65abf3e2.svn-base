@@ -1,0 +1,317 @@
+package com.jsdc.gsgwxb.controller;
+
+import cn.dev33.satoken.stp.SaTokenInfo;
+import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.jsdc.gsgwxb.enums.G;
+import com.jsdc.gsgwxb.mapper.sys.SysUserMapper;
+import com.jsdc.gsgwxb.model.sys.SysUser;
+import com.jsdc.gsgwxb.service.sys.SysMenuService;
+import com.jsdc.gsgwxb.service.sys.SysUserRoleService;
+import com.jsdc.gsgwxb.service.sys.SysUserService;
+import com.jsdc.gsgwxb.utils.BrowserUtils;
+import com.jsdc.gsgwxb.utils.CommonEnum;
+import com.jsdc.gsgwxb.utils.MD5Utils;
+import com.jsdc.gsgwxb.utils.ResultInfo;
+import com.jsdc.gsgwxb.vo.SysUserVo;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 登录登出
+ */
+@RestController
+@RequestMapping("/app")
+@Api(tags = "登录功能")
+@Slf4j
+public class MainController {
+    @Autowired
+    private SysMenuService menuService;
+    @Autowired
+    private SysUserRoleService userRoleService;
+    @Autowired
+    private SysUserService userService;
+
+    @Autowired
+    private SysUserMapper sysUserMapper;
+
+    @PostMapping("/login.do")
+    @ApiOperation("登录")
+    public ResultInfo login(HttpServletRequest request, @RequestBody SysUser sysUser) {
+        String username = sysUser.getUserName();
+        String password = sysUser.getPassword();
+        if (StrUtil.isEmpty(username) || StrUtil.isEmpty(password)) {
+            return ResultInfo.error("用户名或密码不能为空");
+        }
+        List<SysUser> users = userService.getBaseMapper().selectList(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getUserName, username)
+                .or()
+                .eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getAccount, username)
+        );
+        if (CollUtil.isEmpty(users)) {
+            return ResultInfo.error("账号不存在或被禁用");
+        }
+        List<SysUser> sysUsers = userService.getBaseMapper().selectList(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getUserName, username)
+                .in(SysUser::getIsReview, 0)
+                .or()
+                .eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getAccount, username)
+                .in(SysUser::getIsReview, 0)
+        );
+        if (CollUtil.isNotEmpty(sysUsers)) {
+            return ResultInfo.error("账号正在审核中");
+        }
+        SysUser user1 = users.get(0);
+        if (1 == user1.getIsflag()) {
+            return ResultInfo.error("账号已被禁用");
+        } else {
+            SaTokenInfo token = userService.login(username, password);
+            if (null != token) {
+                SysUser user = userService.getUser();
+                if (MD5Utils.getMD5(user.getPassword()).equals(MD5Utils.getMD5(CommonEnum.DEFAULT_PASS_WORD.getCode()))) {
+                    user.setIs_init_pwd(1);
+                } else {
+                    user.setIs_init_pwd(0);
+                }
+                user.setPassword("");
+                SysUserVo vo = new SysUserVo();
+                BeanUtils.copyProperties(user, vo);
+                if (null == vo.getPostId()) {
+                    vo.setPostId(user1.getPostId());
+                }
+                List<String> roleIds = userRoleService.selectUserByRoleIds(user.getId());
+                if (null != roleIds && !roleIds.isEmpty()) {
+                    vo.setRoleIds(roleIds);
+                }
+                vo.setToken(token.getTokenValue());
+                return ResultInfo.success(vo);
+            }
+            return ResultInfo.error("账号或密码错误");
+        }
+    }
+
+    @GetMapping("/isSelfOpenId.do")
+    @ApiOperation("是否本人微信登录")
+    public ResultInfo isSelfOpenId(String code) {
+        try {
+            if (StrUtil.isEmpty(code)) {
+                return ResultInfo.error("code不能为空");
+            }
+            //当前登录用户
+            SysUser user = userService.getUser();
+            ResultInfo resultInfo = userService.wxLoginMethond(code);
+            if (resultInfo.getCode() == 0) {
+                Object data = resultInfo.getData();
+                Map entry = (Map) data;
+                String openid = String.valueOf(entry.get("openId"));
+                //openId已经绑定的用户
+                List<SysUser> users = sysUserMapper.selectList(new LambdaQueryWrapper<SysUser>().eq(SysUser::getWxOpenId, openid));
+                if (CollUtil.isNotEmpty(users)) {
+                    SysUser user1 = users.get(0);
+                    if (user.getRealName().equals(user1.getRealName()) && user.getAccount().equals(user1.getAccount())) {
+                        return ResultInfo.success(1);
+                    } else {
+                        return ResultInfo.success(2);
+                    }
+                }else {
+                    return ResultInfo.success(2);
+                }
+            }
+            return ResultInfo.error("操作失败");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultInfo.error("操作失败");
+        }
+    }
+
+    //绑定微信openId code
+    @GetMapping("/bindWxOpenId.do")
+    @ApiOperation("绑定微信openId")
+    public ResultInfo bindWxOpenId(String code) {
+        try {
+            if (StrUtil.isEmpty(code)) {
+                return ResultInfo.error("code不能为空");
+            }
+            SysUser user = userService.getUser();
+            ResultInfo resultInfo = userService.wxLoginMethond(code);
+            if (resultInfo.getCode() == 0) {
+                Object data = resultInfo.getData();
+                Map entry = (Map) data;
+                String openid = String.valueOf(entry.get("openId"));
+                List<SysUser> users = sysUserMapper.selectList(new LambdaQueryWrapper<SysUser>().eq(SysUser::getWxOpenId, openid));
+                if (CollUtil.isNotEmpty(users)) {
+                    SysUser user1 = users.get(0);
+                    userService.update(null, Wrappers.<SysUser>lambdaUpdate().eq(SysUser::getId, user1.getId()).set(SysUser::getWxOpenId, null));
+                }
+                if (StrUtil.isNotEmpty(openid)) {
+//                    user.setWxOpenId(openid);
+                    userService.update(null, Wrappers.<SysUser>lambdaUpdate().eq(SysUser::getId, user.getId()).set(SysUser::getWxOpenId, openid));
+                    return ResultInfo.success();
+                }
+            }
+            return ResultInfo.error("绑定失败");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultInfo.error("绑定失败");
+        }
+    }
+
+    //免登录
+    @GetMapping(value = "/loginByWxOpenId.do")
+    public ResultInfo loginByWxOpenId(String code) {
+        try {
+            if (StrUtil.isEmpty(code)) {
+                return ResultInfo.error("code不能为空");
+            }
+            ResultInfo resultInfo = userService.wxLoginMethond(code);
+            if (resultInfo.getCode() == 0) {
+                Object data = resultInfo.getData();
+                Map entry = (Map) data;
+                String openid = String.valueOf(entry.get("openId"));
+                if (StrUtil.isNotEmpty(openid)) {
+                    List<SysUser> users = sysUserMapper.selectList(Wrappers.<SysUser>lambdaQuery().eq(SysUser::getIsDel, 0).eq(SysUser::getWxOpenId, openid));
+                    if (CollUtil.isNotEmpty(users)) {
+                        SysUser user = users.get(0);
+                        StpUtil.login(user.getId());
+                        SaTokenInfo token = StpUtil.getTokenInfo();
+                        StpUtil.getSession().set(user.getId(), user);
+                        user.setToken(token.getTokenValue());
+                        return ResultInfo.success(user);
+                    } else if (CollUtil.isEmpty(users)) {
+                        return ResultInfo.error("用户未绑定微信信息");
+                    }
+                }
+            }
+            return ResultInfo.error("登录失败");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultInfo.error("登录失败");
+        }
+    }
+
+
+    @ApiOperation(value = "退出")
+    @RequestMapping(value = "logout", method = RequestMethod.POST)
+    @ResponseBody
+    public ResultInfo logout(HttpServletRequest request) {
+        SysUser user = userService.getUser();
+        try {
+            return userService.logout();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultInfo.error("退出失败");
+        }
+    }
+
+    /**
+     * 微信授权登录
+     *
+     * @param code
+     * @return
+     */
+    @SneakyThrows
+    @RequestMapping("/wxLogin.do")
+    @ResponseBody
+    public ResultInfo wxLogin(@RequestParam(name = "code") String code) {
+        String url = "https://api.weixin.qq.com/sns/jscode2session";
+        //todo 替换
+        url += "?appid=wxf971f086e0e5f390";//自己的appid
+        //todo 替换
+        url += "&secret=f16cbe59f3236223846367b252160b71";//自己的appSecret
+        url += "&js_code=" + code;
+        url += "&grant_type=authorization_code";
+        url += "&connect_redirect=1";
+        String res = null;
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        // DefaultHttpClient();
+        HttpGet httpget = new HttpGet(url);    //GET方式
+        CloseableHttpResponse response = null;
+        // 配置信息
+        RequestConfig requestConfig = RequestConfig.custom()          // 设置连接超时时间(单位毫秒)
+                .setConnectTimeout(5000)                    // 设置请求超时时间(单位毫秒)
+                .setConnectionRequestTimeout(5000)             // socket读写超时时间(单位毫秒)
+                .setSocketTimeout(5000)                    // 设置是否允许重定向(默认为true)
+                .setRedirectsEnabled(false).build();           // 将上面的配置信息 运用到这个Get请求里
+        httpget.setConfig(requestConfig);                         // 由客户端执行(发送)Get请求
+        response = httpClient.execute(httpget);                   // 从响应模型中获取响应实体
+        HttpEntity responseEntity = response.getEntity();
+        System.out.println("响应状态为:" + response.getStatusLine());
+        if (responseEntity != null) {
+            res = EntityUtils.toString(responseEntity);
+            System.out.println("响应内容长度为:" + responseEntity.getContentLength());
+            System.out.println("响应内容为:" + res);
+        }
+        // 释放资源
+        if (httpClient != null) {
+            httpClient.close();
+        }
+        if (response != null) {
+            response.close();
+        }
+        JSONObject jo = JSON.parseObject(res);
+        String errcode = jo.getString("errcode");
+        if (null != errcode) {
+            return ResultInfo.error("服务器无法获取授权码,请使用账号重新登录");
+        } else {
+            String openId = jo.getString("openid");
+            List<SysUser> list = sysUserMapper.selectList(Wrappers.<SysUser>lambdaQuery().eq(SysUser::getWxOpenId, openId).eq(SysUser::getIsDel, 0));
+            if (!list.isEmpty() && list.size() > 0) {
+                SysUser sysUser = list.get(0);
+                if (0 == sysUser.getStates()) {
+                    return ResultInfo.error("账号已被禁用");
+                } else {
+                    sysUser.setWxOpenId(openId);
+//                    sysUser.setPassword("");
+                    return ResultInfo.success(sysUser);
+                }
+            } else {
+                return ResultInfo.error("请使用账号登录");
+            }
+        }
+    }
+
+    @PostMapping("/userGps/putMsg")
+    @ApiOperation("更新人员经纬度信息")
+    public ResultInfo putMsg(@RequestBody SysUser SysUser) {
+        return ResultInfo.success(userService.putGpsMsg(SysUser));
+    }
+
+    @PostMapping("/userStatus/putOnline")
+    @ApiOperation("更新人员在线状态")
+    public ResultInfo putOnline(@RequestBody SysUser SysUser) {
+        return ResultInfo.success(userService.putOnline(SysUser));
+    }
+
+
+}

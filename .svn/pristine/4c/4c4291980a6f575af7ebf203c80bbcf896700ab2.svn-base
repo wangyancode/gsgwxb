@@ -1,0 +1,124 @@
+package com.jsdc.gsgwxb.controller;
+
+import cn.dev33.satoken.stp.SaTokenInfo;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.tree.Tree;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.jsdc.gsgwxb.enums.G;
+import com.jsdc.gsgwxb.model.sys.SysUser;
+import com.jsdc.gsgwxb.service.sys.SysMenuService;
+import com.jsdc.gsgwxb.service.sys.SysUserRoleService;
+import com.jsdc.gsgwxb.service.sys.SysUserService;
+import com.jsdc.gsgwxb.utils.BrowserUtils;
+import com.jsdc.gsgwxb.utils.CommonEnum;
+import com.jsdc.gsgwxb.utils.MD5Utils;
+import com.jsdc.gsgwxb.utils.ResultInfo;
+import com.jsdc.gsgwxb.vo.SysUserVo;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 登录登出
+ */
+@RestController
+@RequestMapping("/")
+@Api(tags = "登录功能")
+public class MainController {
+
+    @Autowired
+    private SysUserService userService;
+    @Autowired
+    private SysMenuService menuService;
+    @Autowired
+    private SysUserRoleService userRoleService;
+
+
+    @ApiOperation(value = "登录", notes = "传递参数：用户名：user_name(必填)，密码：pass_word(必填)")
+    @RequestMapping(value = "login", method = RequestMethod.POST)
+    @ResponseBody
+    public ResultInfo login(HttpServletRequest request, @RequestBody SysUser bean) {
+        if (StringUtils.isEmpty(bean.getUserName()) || StringUtils.isEmpty(bean.getPassword())) {
+            return ResultInfo.error("用户名或密码不能为空");
+        }
+        Integer count = userService.count(new LambdaQueryWrapper<SysUser>().eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getUserName, bean.getUserName())
+                .or()
+                .eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getAccount, bean.getUserName())
+        );
+        if (count == 0) {
+            return ResultInfo.error("账号不存在或被禁用");
+        }
+        List<SysUser> sysUsers = userService.getBaseMapper().selectList(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getUserName, bean.getUserName())
+                .in(SysUser::getIsReview, 0)
+                .or()
+                .eq(SysUser::getIsDel, 0)
+                .eq(SysUser::getStates, 1)
+                .eq(SysUser::getAccount, bean.getUserName())
+                .in(SysUser::getIsReview, 0)
+        );
+        if (CollUtil.isNotEmpty(sysUsers)) {
+            return ResultInfo.error("账号正在审核中");
+        }
+        SaTokenInfo token = userService.login(bean.getUserName(), bean.getPassword());
+        if (null != token) {
+            SysUser user = userService.getUser();
+            if (MD5Utils.getMD5(user.getPassword()).equals(MD5Utils.getMD5(CommonEnum.DEFAULT_PASS_WORD.getCode()))) {
+                user.setIs_init_pwd(1);
+            } else {
+                user.setIs_init_pwd(0);
+            }
+            user.setPassword("");
+            SysUserVo vo = new SysUserVo();
+            BeanUtils.copyProperties(user, vo);
+
+            List<String> roleIds = userRoleService.selectUserByRoleIds(user.getId());
+            if (null != roleIds && !roleIds.isEmpty()) {
+                vo.setRoleIds(roleIds);
+            }
+            List<Tree<String>> trees = menuService.selectRoleMenuList(user.getId());
+            if (null != trees && !trees.isEmpty()) {
+                vo.setMenuTrees(trees);
+            }
+            vo.setToken(token.getTokenValue());
+
+            return ResultInfo.success(vo);
+        } else {
+            List<SysUser> users = userService.getBaseMapper().selectList(new LambdaQueryWrapper<SysUser>()
+                    .eq(SysUser::getIsDel, 0)
+                    .eq(SysUser::getUserName, bean.getUserName()));
+            if (CollUtil.isEmpty(users)) {
+                return ResultInfo.error("用户不存在");
+            }
+            return ResultInfo.error("用户名或密码错误");
+        }
+    }
+
+
+    @ApiOperation(value = "退出")
+    @RequestMapping(value = "logout", method = RequestMethod.POST)
+    @ResponseBody
+    public ResultInfo logout(HttpServletRequest request) {
+        try {
+            return userService.logout();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultInfo.error("退出失败");
+        }
+    }
+
+}

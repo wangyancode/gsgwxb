@@ -1,0 +1,328 @@
+package com.jsdc.gsgwxb.model.sys;
+
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.extension.activerecord.Model;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Comment;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 用户管理
+ */
+@Entity
+@Table(name = "sys_user")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@org.hibernate.annotations.Table(
+        appliesTo = "sys_user",
+        comment = "系统用户"
+)
+public class SysUser extends Model<SysUser> implements Serializable {
+    @Id
+    @TableId(value = "id", type = IdType.INPUT)
+    @Comment("id")
+    private String id;
+    @Comment("客户Id")
+    private String customerId;
+    @Comment("姓名")
+    private String realName;
+    @Comment("岗位 取字典")
+    private String position;
+    @Comment("账号")
+    private String account;
+    @Comment("身份证号")
+    private String idCard;
+    @Comment("邮箱")
+    private String email;
+    @Comment(value = "微信openId")
+    @TableField(value = "wxOpenId")
+    private String wxOpenId;
+    //用户名
+    @Comment("用户名")
+    private String userName;
+    //密码
+    @Comment("密码")
+    private String password;
+    //手机号
+    @Comment("手机号")
+    private String phone;
+    @Comment("所属区域Id")
+    private String areaId;
+    @Comment("审核人")
+    private String reviewUser;
+    @Comment("审核意见")
+    private String reviewReason;
+    //状态
+    @Comment("状态 1正常 0禁用")
+    private Integer states;
+    @Comment("性别 1男 2女 -1未知")
+    private Integer sex;
+    @Comment("状态 0启用，1弃用")
+    private Integer isflag;
+    @Comment("来源1后台注册，2app注册")
+    private Integer resource;
+    @Comment("是否审核 0未审核，1通过，2未通过")
+    private Integer isReview;
+    @Comment("同步版本")
+    private String version;
+    @Comment("创建者")
+    @TableField(fill = FieldFill.INSERT)
+    private String createUser;
+    @Comment("修改者")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateUser;
+    @Comment("创建时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @TableField(fill = FieldFill.INSERT)
+    private Date createTime;
+    @Comment("修改时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Date updateTime;
+    //是否删除
+    @Comment("是否删除, 0、否 1、是")
+    private Integer isDel;
+    @Comment("提交时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Date submitTime;
+    //备注
+    @Comment("备注")
+    private String remarks;
+
+    @Comment("经度")
+    private String longitude;
+
+    @Comment("纬度")
+    private String latitude;
+
+    @Comment("岗位")
+    @TableField(value = "postId")
+    private String postId;
+
+    @Comment("在线状态 0在线 1不在线")
+    private String onlineStatus;
+    //是否是初始密码（0、否 1、是）
+    @Transient
+    @TableField(exist = false)
+    private Integer is_init_pwd;
+    //客户名称
+    @Transient
+    @TableField(exist = false)
+    private String customerName;
+    @Transient
+    @TableField(exist = false)
+    private String reviewUserName;
+    @Transient
+    @TableField(exist = false)
+    private String createTimeStr;
+    @Transient
+    @TableField(exist = false)
+    private String token;
+    //状态名称
+    @Transient
+    @TableField(exist = false)
+    private String stateName;
+    //字典 岗位
+    @Transient
+    @TableField(exist = false)
+    private String positionLabel;
+    @Transient
+    @TableField(exist = false)
+    private String openId;
+
+    // 关联的菜单
+    @Transient
+    @TableField(exist = false)
+    private List<SysMenu> menus;
+
+    // 关联的角色
+    @Transient
+    @TableField(exist = false)
+    private List<SysRole> roles;
+
+
+
+    // 工时统计 合计时间
+    @Transient
+    @TableField(exist = false)
+    private String time;
+
+
+
+    //合计
+    @Transient
+    @TableField(exist = false)
+    private Integer totalCount;
+
+    //日均数量
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal dailyAverageQuantity;
+
+    //工作日
+    @Transient
+    @TableField(exist = false)
+    private Integer workingDays;
+
+    //已完成
+    @Transient
+    @TableField(exist = false)
+    private Integer completedCount;
+
+    //已转单
+    @Transient
+    @TableField(exist = false)
+    private Integer transferCont;
+
+    //重复工单数
+    @Transient
+    @TableField(exist = false)
+    private Integer repeatCount;
+
+    //完成率
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal completionRate;
+
+    //转单率
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal orderConversionRate;
+
+    //一次解决率
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal resolutionRate;
+
+
+    //工作量积分
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal totalScore;
+
+    //日均积分
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal dayScore;
+
+
+    //工单积分
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal workScore;
+
+    //路程积分
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal distanceScore;
+    @Transient
+    @TableField(exist = false)
+    private Integer pageNo;
+    @Transient
+    @TableField(exist = false)
+    private Integer pageSize;
+
+    //区域名称
+    @Transient
+    @TableField(exist = false)
+    private String areaName;
+
+
+    //工作时长
+    @Transient
+    @TableField(exist = false)
+    private String workingHours;
+
+
+    //日均时长
+    @Transient
+    @TableField(exist = false)
+    private String dayHours;
+
+    //工单时长
+    @Transient
+    @TableField(exist = false)
+    private String workOrderDuration;
+
+    //路程时长
+    @Transient
+    @TableField(exist = false)
+    private String distanceDuration;
+
+    //里程
+    @Transient
+    @TableField(exist = false)
+    private String mileage;
+
+
+    //工作车速
+    @Transient
+    @TableField(exist = false)
+    private String speed;
+
+
+    //客户满意度
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal satisfaction;
+
+    //工作时长
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal timeScore;
+
+    //工作量
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal workload;
+
+    //车速得分
+    @Transient
+    @TableField(exist = false)
+    private BigDecimal speedScore;
+    //头像文件
+    @Transient
+    @TableField(exist = false)
+    private SysFile sysFile;
+
+    // 岗位名称
+    @Transient
+    @TableField(exist = false)
+    private String postName;
+
+    // 岗位权限: 1.区域经理，2.部门负责人，3.助理，4.运维人员
+    @Transient
+    @TableField(exist = false)
+    private String permissions;
+
+    // 岗位权限名称
+    @Transient
+    @TableField(exist = false)
+    private String permissionsName;
+
+
+    @Transient
+    @TableField(exist = false)
+    @ApiModelProperty(hidden = true)
+    List<String> authority = new ArrayList<>();
+
+}

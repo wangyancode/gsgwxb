@@ -1,0 +1,78 @@
+package com.bn.test;//package com.bn.test;
+//
+//
+//import com.jsdc.szywpt.Application;
+//import com.jsdc.szywpt.config.InfluxDBConfig;
+//import com.jsdc.szywpt.service.InfluxdbService;
+//import org.influxdb.InfluxDB;
+//import org.influxdb.dto.BatchPoints;
+//import org.influxdb.dto.Point;
+//import org.influxdb.dto.QueryResult;
+//import org.junit.Test;
+//import org.junit.runner.RunWith;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.boot.test.context.SpringBootTest;
+//import org.springframework.test.context.junit4.SpringRunner;
+//
+//import java.util.Date;
+//import java.util.HashMap;
+//import java.util.List;
+//import java.util.Map;
+//import java.util.concurrent.TimeUnit;
+//
+///**
+// * ClassName: InfluxDbDemo
+// * Description:
+// * date: 2025/4/7 20:08
+// *
+// * @author bn
+// */
+//@RunWith(SpringRunner.class)
+//@SpringBootTest(classes = Application.class)
+//public class InfluxDbDemo {
+//
+//    @Autowired
+//    private InfluxDBConfig influxDBConfig;
+//
+//    @Autowired
+//    private InfluxdbService influxdbService;
+//
+//    @Test
+//    public void testSave() {
+//
+//        BatchPoints batchPoints = BatchPoints.database(influxDBConfig.database).retentionPolicy("autogen") // 设置保留策略
+//                .consistency(InfluxDB.ConsistencyLevel.ALL) // 设置一致性级别
+//                .build();
+//
+//
+//        Map<String, String> tagsMap = new HashMap<>();
+//
+//        tagsMap.put("id","1");
+//        Map<String, Object> fieldsMap = new HashMap<>();
+//        fieldsMap.put("aaa", "1");
+//        fieldsMap.put("bbb", "2");
+//        fieldsMap.put("ccc", "3");
+//        Date date = new Date();
+//        long time = date.getTime() + 28800000;
+//        Point builder = Point.measurement("testsheet").tag(tagsMap).fields(fieldsMap).time(time, TimeUnit.MILLISECONDS).build();
+//        batchPoints.point(builder);
+//
+//        influxdbService.batchInsert(batchPoints);
+//    }
+//
+//    @Test
+//    public void testQuery(){
+//        String sql="select * from testsheet ";
+//
+//        // 时序数据库解析
+//        QueryResult query = influxdbService.query(sql);
+//
+//        //解析列表类查询
+//        List<Map<String, Object>> maps = influxdbService.queryResultProcess(query);
+//
+//
+//        System.out.println();
+//
+//    }
+//
+//}

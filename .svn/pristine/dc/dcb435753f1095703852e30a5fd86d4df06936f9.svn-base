@@ -1,0 +1,50 @@
+package com.jsdc.gsgwxb;
+
+
+import com.jsdc.gsgwxb.generator.GeneratorService;
+import com.jsdc.gsgwxb.model.resource.OperationMileage;
+import com.jsdc.gsgwxb.service.resource.CarGpsService;
+import com.jsdc.gsgwxb.service.resource.OperationCarService;
+import com.jsdc.gsgwxb.vo.resource.GpsCarVo;
+import com.jsdc.gsgwxb.vo.resource.OperationCarVo;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import java.io.IOException;
+import java.util.List;
+
+@SpringBootTest(classes = WebApplication.class)
+@RunWith(SpringRunner.class)
+public class MainTest {
+
+    @Autowired
+    private GeneratorService generatorService;
+    @Autowired
+    private CarGpsService carGpsService;
+    @Autowired
+    private OperationCarService operationCarService;
+
+    @Test
+    public void test1() {
+        try {
+            generatorService.generator(OperationMileage.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void test2() {
+        OperationCarVo vo = new OperationCarVo();
+        vo.setVids("251577,252551");
+        vo.setStartTime("2025-06-09 10:00:00");
+        vo.setEndTime("2025-06-09 17:00:00");
+        List<GpsCarVo> map = operationCarService.map(vo);
+        System.out.println(map);
+
+    }
+
+}
